@@ -5,9 +5,7 @@ export default function Transaction() {
   const params = useLocalSearchParams<{ id: string }>();
 
   return (
-    <View
-      style={{ flex: 1, justifyContent: "center", backgroundColor: "#FFF" }}
-    >
+    <View style={{ flex: 1, justifyContent: "center" }}>
       <Text>ID: {params.id}</Text>
 
       <Button title="Home page" onPress={() => router.navigate("/")} />
