@@ -1,4 +1,6 @@
+import { router } from "expo-router";
 import { View } from "react-native";
+import { Button } from "@/components/Button";
 import { HomeHeader } from "@/components/Home-Header";
 import { List } from "@/components/List";
 import { Separator } from "@/components/Separator";
@@ -45,10 +47,19 @@ export default function Index() {
         data={targets}
         keyExtractor={(item) => item.id}
         ItemSeparatorComponent={() => <Separator color={colors.gray[200]} />}
-        renderItem={({ item }) => <Target data={item} />}
+        renderItem={({ item }) => (
+          <Target
+            data={item}
+            onPress={() => router.navigate(`/in-progress/${item.id}`)}
+          />
+        )}
         emptyMessage="Nenhuma meta cadastrada."
         containerStyle={{ paddingHorizontal: 24 }}
       />
+
+      <View style={{ padding: 24, paddingBottom: 32 }}>
+        <Button title="Nova meta" onPress={() => router.navigate("/target")} />
+      </View>
     </View>
   );
 }
