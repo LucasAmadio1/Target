@@ -82,10 +82,17 @@ export function useTargetDatabase() {
     });
   }
 
+  async function remove(id: number) {
+    await database.runAsync(`
+      DELETE FROM targets WHERE id = ${id}  
+    `);
+  }
+
   return {
     create,
     show,
     update,
+    remove,
     listBySavedValue,
   };
 }
