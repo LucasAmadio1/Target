@@ -1,40 +1,31 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, StatusBar, View } from "react-native";
-
 import { Button } from "@/components/Button";
-import { HomeHeader } from "@/components/HomeHeader";
+import { HomeHeader, type HomeHeaderProps } from "@/components/HomeHeader";
 import { List } from "@/components/List";
 import { Loading } from "@/components/Loading";
-import { Separator } from "@/components/Separator";
 import { Target, type TargetProps } from "@/components/Target";
-
 import { useTargetDatabase } from "@/database/use-target-database";
-
-import { colors } from "@/theme";
+import { useTransactionsDatabase } from "@/database/useTransactionsDatabase";
 import { numberToCurrency } from "@/utils/numberToCurrency";
 
-const summary = {
-  total: "R$ 2.680,00",
-  input: { label: "Entradas", value: "R$ 6,184.90" },
-  output: { label: "Saídas", value: "-R$ 883.65" },
-};
-
 export default function Index() {
-  const targetDatabase = useTargetDatabase();
-
+  const [summary, setSummary] = useState<HomeHeaderProps>();
   const [isFetching, setIsFetching] = useState(true);
   const [targets, setTargets] = useState<TargetProps[]>([]);
+
+  const targetDatabase = useTargetDatabase();
+  const transactionsDatabase = useTransactionsDatabase();
 
   async function fetchTargets(): Promise<TargetProps[]> {
     try {
       const response = await targetDatabase.listBySavedValue();
-
       return response.map((item) => ({
         id: String(item.id),
         name: item.name,
         current: numberToCurrency(item.current),
-        percentage: `${item.percentage.toFixed(0)}%`,
+        percentage: item.percentage.toFixed(0) + "%",
         target: numberToCurrency(item.amount),
       }));
     } catch (error) {
@@ -43,12 +34,39 @@ export default function Index() {
     }
   }
 
+  async function fetchSummary(): Promise<HomeHeaderProps> {
+    try {
+      const response = await transactionsDatabase.summary();
+
+      return {
+        total: numberToCurrency(response.input + response.output),
+        input: {
+          label: "Entradas",
+          value: numberToCurrency(response.input),
+        },
+        output: {
+          label: "Saídas",
+          value: numberToCurrency(response.output),
+        },
+      };
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível carregar o resumo.");
+      console.log(error);
+    }
+  }
+
   async function fetchData() {
     const targetDataPromise = fetchTargets();
+    const dataSummaryPromise = fetchSummary();
 
-    const [targetData] = await Promise.all([targetDataPromise]);
+    const [targetData, dataSummary] = await Promise.all([
+      targetDataPromise,
+      dataSummaryPromise,
+    ]);
 
     setTargets(targetData);
+    setSummary(dataSummary);
+
     setIsFetching(false);
   }
 
@@ -65,21 +83,19 @@ export default function Index() {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar barStyle="light-content" />
-
       <HomeHeader data={summary} />
 
       <List
         title="Metas"
         data={targets}
         keyExtractor={(item) => item.id}
-        ItemSeparatorComponent={() => <Separator color={colors.gray[200]} />}
         renderItem={({ item }) => (
           <Target
             data={item}
             onPress={() => router.navigate(`/in-progress/${item.id}`)}
           />
         )}
-        emptyMessage="Nenhuma meta cadastrada."
+        emptyMessage="Nenhuma meta. Toque em nova meta para criar."
         containerStyle={{ paddingHorizontal: 24 }}
       />
 
