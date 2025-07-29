@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, View } from "react-native";
@@ -9,31 +10,19 @@ import { Progress } from "@/components/Progress";
 import { Separator } from "@/components/Separator";
 import { Transaction, type TransactionProps } from "@/components/Transaction";
 import { useTargetDatabase } from "@/database/use-target-database";
+import { useTransactionsDatabase } from "@/database/useTransactionsDatabase";
 import { colors } from "@/theme";
 import { numberToCurrency } from "@/utils/numberToCurrency";
 import { TransactionTypes } from "@/utils/transaction-types";
-
-const transactions: TransactionProps[] = [
-  {
-    id: "2",
-    value: "R$ 20,00",
-    date: "12/04/25",
-    type: TransactionTypes.Output,
-  },
-  {
-    id: "1",
-    value: "R$ 300,00",
-    date: "12/04/25",
-    description: "CDB de 110% no banco XPTO",
-    type: TransactionTypes.Input,
-  },
-];
 
 export default function InProgress() {
   const params = useLocalSearchParams<{ id: string }>();
 
   const targetDatabase = useTargetDatabase();
+  const transactionsDatabase = useTransactionsDatabase();
 
+  const [transactions, setTransactions] = useState<TransactionProps[]>([]);
+  const [isFetching, setIsFetching] = useState(true);
   const [details, setDetails] = useState({
     name: "",
     current: "R$ 0,00",
@@ -41,9 +30,7 @@ export default function InProgress() {
     percentage: 0,
   });
 
-  const [isFetching, setIsFetching] = useState(true);
-
-  async function fetchDetails() {
+  async function fetchTargetDetails() {
     try {
       const response = await targetDatabase.show(Number(params.id));
 
@@ -59,10 +46,32 @@ export default function InProgress() {
     }
   }
 
-  async function fetchData() {
-    const fetchDetailsPromise = fetchDetails();
+  async function fetchTransitions() {
+    try {
+      const response = await transactionsDatabase.listByTargetId(
+        Number(params.id),
+      );
 
-    await Promise.all([fetchDetailsPromise]);
+      setTransactions(
+        response.map((item) => ({
+          id: String(item.id),
+          value: numberToCurrency(item.amount),
+          date: dayjs(item.created_at).format("DD/MM/YYYY [às] HH:mm"),
+          description: item.observation,
+          type:
+            item.amount < 0 ? TransactionTypes.Output : TransactionTypes.Input,
+        })),
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async function fetchData() {
+    const fetchTargetDetailsPromise = fetchTargetDetails();
+    const fetchTransitionsPromise = fetchTransitions();
+
+    await Promise.all([fetchTargetDetailsPromise, fetchTransitionsPromise]);
     setIsFetching(false);
   }
 
