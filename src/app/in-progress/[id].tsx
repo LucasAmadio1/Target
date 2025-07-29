@@ -75,6 +75,23 @@ export default function InProgress() {
     setIsFetching(false);
   }
 
+  function handleTransactionRemove(id: string) {
+    Alert.alert("Remover", "Deseja realmente remover essa transação?", [
+      { text: "Não", style: "cancel" },
+      { text: "Sim", onPress: () => transactionRemove(id) },
+    ]);
+  }
+
+  async function transactionRemove(id: string) {
+    try {
+      await transactionsDatabase.remove(Number(id));
+
+      fetchData();
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   useFocusEffect(
     useCallback(() => {
       fetchData();
@@ -102,7 +119,10 @@ export default function InProgress() {
         data={transactions}
         ItemSeparatorComponent={() => <Separator color={colors.gray[200]} />}
         renderItem={({ item }) => (
-          <Transaction data={item} onRemove={() => {}} />
+          <Transaction
+            data={item}
+            onRemove={() => handleTransactionRemove(item.id)}
+          />
         )}
         emptyMessage="Nenhuma transação cadastrada."
       />
