@@ -15,6 +15,10 @@ export interface TargetListProps {
   updated_at: Date;
 }
 
+export interface TargetUpdateProps extends TargetCreateProps {
+  id: number;
+}
+
 export function useTargetDatabase() {
   const database = useSQLiteContext();
 
@@ -62,9 +66,26 @@ export function useTargetDatabase() {
     `);
   }
 
+  async function update(data: TargetUpdateProps) {
+    const statement = await database.prepareAsync(`
+      UPDATE targets SET
+        name = $name,
+        amount = $amount,
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = $id
+    `);
+
+    statement.executeAsync({
+      $id: data.id,
+      $name: data.name,
+      $amount: data.amount,
+    });
+  }
+
   return {
     create,
-    listBySavedValue,
     show,
+    update,
+    listBySavedValue,
   };
 }
